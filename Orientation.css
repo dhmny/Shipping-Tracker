@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css?family=VT323');
+
+#image_background {
+  background: url('http://i.imgur.com/uuYygjz.png') 0 / contain no-repeat;
+  font-family: "VT323";
+  font-size: 25px;
+  letter-spacing: 10.5px;
+  height: 220px;
+  width: 450px;
+}
+
+#image_background p, #image_background_text {
+  margin: 0;
+  left: 75px;
+  position: absolute;
+}
+
+#image_background p {
+  top: 88px;
+  font-size: 25px !important;
+}
+
+#image_background_text {
+  top: 121px;
+}
