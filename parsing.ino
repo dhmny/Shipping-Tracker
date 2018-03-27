@@ -25,31 +25,34 @@ File myDataFile;
  
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
-  LED_ON();
-  wifiConnection();
-  creatTxt();
-  setupMPU();
+  LED_ON();                         // Turn on LED before Wifi is connected 
+  wifiConnection();                 // Connect to Wifi
+  creatTxt();                       // Start a new txt file
+  setupMPU();                       // Setup the MPU
 }
 
 void loop() {
-  recordAccelRegisters();
-  printData();
-  sendToUbidots();
-  Serial.println("Wifi is connected. This is the IP address:\t");     // Write some data to it (26-characters)
-  Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
+  recordAccelRegisters();          // read Accelrometer data
+  printData();                     // Print data on Serial Monitor
+  sendToUbidots();                 // Send data to Ubidots
+ 
+  Serial.println("Wifi is connected. This is the IP address:\t");     // print IP address
+  Serial.println(WiFi.localIP());                                    // on serial monitor
 
-  if(WiFi.status() != WL_CONNECTED) { 
+  if(WiFi.status() != WL_CONNECTED) {                               // if Wifi disconnects log data on txt file and turn on LED
       LED_ON();
       while(WiFi.status() != WL_CONNECTED){
-            Serial.println("Wifi is disconnected! Looking for a network!");     // Write some data to it (26-characters)
-            wifiReconnect();
+            Serial.println("Wifi is disconnected! Looking for a network!");     
+            wifiReconnect();                                       //try to reconnect
             recordAccelRegisters();
             printData();
-            logTxt(AccMag, gForceX, gForceY, gForceZ);
-            readTxt();
+            logTxt(AccMag, gForceX, gForceY, gForceZ);            //write the data to the txt file
+            readTxt();                                            //show the txt file content on serial monitor
       }
-      LED_OFF();
-      parsing();
+      LED_OFF();                                                  //LED is off = Wifi is connected again
+      parsing();                                                  //start parsing the txt file and upload it to Ubidots
+      SPIFFS.remove(filename);                                    //flush the file after it's done uploading
+
  }
 
 }
@@ -67,7 +70,7 @@ void logTxt(float magshock, float valueX, float valueY, float valueZ){
   myDataFile.println(valueZ);     // Write some data to it (26-characters)
 //  Serial.println(myDataFile.size());                    // Display the file size (26 characters + 4-byte floating point number + 6 termination bytes (2/line) = 34 bytes)
 }
-void readTxt(){
+void readTxt(){                                          //This function is used to show the txt file content on Serial Monitor
    myDataFile = SPIFFS.open(filename, "r");              // Open the file again, this time for reading
   if (!myDataFile) Serial.println("file open failed");  // Check for errors
   while (myDataFile.available()) {
@@ -75,12 +78,12 @@ void readTxt(){
   }
   myDataFile.close();                                   // Close the file
 }
-void creatTxt(){
+void creatTxt(){                                        //This function is used to creat new  txt file and remove older one if existed
   SPIFFS.begin();
   if (SPIFFS.exists(filename)) SPIFFS.remove(filename); // First in this example check to see if a file already exists, if so delete it
   if (!myDataFile)Serial.println("file open failed");   // Check for errors 
 }
-void setupMPU(){
+void setupMPU(){                                     //This function is used to setup MPU
   Wire.begin(4,5);
   Wire.beginTransmission(0b1101000); //This is the I2C address of the MPU (b1101000/b1101001 for AC0 low/high datasheet sec. 9.2)
   Wire.write(0x6B); //Accessing the register 6B - Power Management (Sec. 4.28)
@@ -92,7 +95,7 @@ void setupMPU(){
   Wire.endTransmission(); 
 }
 
-void wifiConnection(){
+void wifiConnection(){                                      //This function is used to connect to WiFi
   
   Serial.begin(115200);
   WiFi.begin(ssid, password);             // Connect to the network
@@ -111,7 +114,7 @@ void wifiConnection(){
   LED_OFF();
 }
 
-void wifiReconnect(){
+void wifiReconnect(){                                       //This function is used to reconnect to WiFi when it disconnects
     WiFi.disconnect();
     WiFi.mode(WIFI_OFF);
     WiFi.mode(WIFI_STA);
@@ -131,14 +134,14 @@ void wifiReconnect(){
   Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
 }
 
-void sendToUbidots(){
+void sendToUbidots(){                                      //This function is used to send data to Ubidots
   client.add(ShockMagnitude,AccMag);
   client.add(AccelerometerX,gForceX);
   client.add(AccelerometerY,gForceY);
   client.add(AccelerometerZ,gForceZ);
   client.sendAll();
 }
-void recordAccelRegisters() {
+void recordAccelRegisters() {                                      //This function is used to read data from MPU sensor
   Wire.beginTransmission(0b1101000); //I2C address of the MPU
   Wire.write(0x3B); //Starting register for Accel Readings
   Wire.endTransmission();
@@ -150,7 +153,7 @@ void recordAccelRegisters() {
   processAccelData();
 }
 
-void processAccelData(){
+void processAccelData(){                                       //This function is used to process the MPU data to somthing useful
   gForceX = accelX/2048.0;
   gForceY = accelY/2048.0; 
   gForceZ = accelZ/2048.0; 
@@ -163,7 +166,7 @@ void processAccelData(){
      AccMag= sqrt( sq(gForceX) + sq(gForceY)+ sq(gForceZ) );
 }
 
-void printData() {
+void printData() {                                          //This function is used to print data to serial Monitor
   Serial.print("Accelerometer:  ");
   Serial.print(" Shock Magnitude= "); Serial.print(AccMag, 4);
   Serial.print(" || X="); Serial.print(gForceX);
@@ -181,36 +184,36 @@ void printData() {
   else ;
 }
 
-void LED_ON(){
+void LED_ON(){                                         //This function is used to turn LED on
     digitalWrite(LED_BUILTIN, LOW);   // Turn the LED ON
 }
-void LED_OFF(){
+void LED_OFF(){                                         //This function is used to turn LED off
     digitalWrite(LED_BUILTIN, HIGH);   // Turn the LED OFF 
 }
 
-void parsing(){
+void parsing(){                                         //This function is used to parse the file
   myDataFile = SPIFFS.open(filename, "r");              // Open the file again, this time for reading
   if (!myDataFile) Serial.println("file open failed");  // Check for errors
   
-  while (myDataFile.available()) {
+  while (myDataFile.available()) {                      //if it is not the end of file stay in this loop
     char c = myDataFile.read();
-    if (c == '\n') {
+    if (c == '\n') {                                   //if it's a new line charecter send the whole line to parseline function then delet content and start a new line
       parseLine(line);
       line = "";
   }
    else {
-      line += c;
+      line += c;                                      //else it is not the end of file, keep adding charecter to the line string
     }
 }
-  myDataFile.close();                                   // Close the file
+  myDataFile.close();                                   // Close the file when you done
 }
-void parseLine(String strLine) {
-  String part1; //mag
-  String part2; //acc x
-  String part3; //acc y
-  String part4; //acc z
+void parseLine(String strLine) {                        //This function is used to parse each line of file
+  String part1; //mag   value
+  String part2; //acc x value
+  String part3; //acc y value
+  String part4; //acc z value
 
-  part1 = strLine.substring(strLine.indexOf("Shock:")+ 6, strLine.indexOf(" X:")); //mag
+  part1 = strLine.substring(strLine.indexOf("Shock:")+ 6, strLine.indexOf(" X:")); // parse start aftrt "Shock:" and ends before " X:" 
   part2 = strLine.substring(strLine.indexOf(" X:") + 3, strLine.indexOf(" Y:")); //X
   part3 = strLine.substring(strLine.indexOf(" Y:") +3, strLine.indexOf(" Z:")); //Y
   part4 = strLine.substring(strLine.indexOf(" Z:") + 3); //Z
@@ -221,7 +224,7 @@ void parseLine(String strLine) {
  Serial.println(part3); 
  Serial.println(part4); 
 
-  AccMag = part1.toFloat();
+  AccMag = part1.toFloat();                                     // convert strings to float numbers before sending them to Ubidots 
   gForceX = part2.toFloat();
   gForceY = part3.toFloat();
   gForceZ = part4.toFloat();
