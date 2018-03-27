@@ -25,7 +25,7 @@ File myDataFile;
  
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
-  LED_ON();                         // Turn on LED before Wifi is connected 
+  LED_OFF();                         // Turn OFF LED before Wifi is connected 
   wifiConnection();                 // Connect to Wifi
   creatTxt();                       // Start a new txt file
   setupMPU();                       // Setup the MPU
@@ -40,7 +40,7 @@ void loop() {
   Serial.println(WiFi.localIP());                                    // on serial monitor
 
   if(WiFi.status() != WL_CONNECTED) {                               // if Wifi disconnects log data on txt file and turn on LED
-      LED_ON();
+      LED_OFF();
       while(WiFi.status() != WL_CONNECTED){
             Serial.println("Wifi is disconnected! Looking for a network!");     
             wifiReconnect();                                       //try to reconnect
@@ -49,7 +49,7 @@ void loop() {
             logTxt(AccMag, gForceX, gForceY, gForceZ);            //write the data to the txt file
             readTxt();                                            //show the txt file content on serial monitor
       }
-      LED_OFF();                                                  //LED is off = Wifi is connected again
+      LED_ON();                                                  //LED is off = Wifi is connected again
       parsing();                                                  //start parsing the txt file and upload it to Ubidots
       SPIFFS.remove(filename);                                    //flush the file after it's done uploading
 
@@ -111,7 +111,7 @@ void wifiConnection(){                                      //This function is u
   Serial.println("Connection established!");  
   Serial.print("IP address:\t");
   Serial.println(WiFi.localIP());         // Send the IP address of the ESP8266 to the computer
-  LED_OFF();
+  LED_ON();
 }
 
 void wifiReconnect(){                                       //This function is used to reconnect to WiFi when it disconnects
@@ -126,7 +126,7 @@ void wifiReconnect(){                                       //This function is u
     while (WiFi.status() != WL_CONNECTED) { // Wait for the Wi-Fi to connect
     delay(1000);
     Serial.print(++i); Serial.print(' ');
-    if(i>5) break;
+    if(i>10) break;
   }
   Serial.println('\n');
   Serial.println("Connection established!");  
